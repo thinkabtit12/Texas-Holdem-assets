@@ -27,8 +27,11 @@
         .hidden {
             display: none;
         }
-        .player-area {
-            margin: 20px;
+        .card-area {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            margin: 20px 0;
         }
     </style>
 </head>
@@ -39,19 +42,10 @@
     <button onclick="startGame('pvp')">PvP</button>
     <div id="game-area" class="game-container hidden">
         <h2 id="player-turn">Player 1's Turn</h2>
-        <div class="player-area" id="player1">
-            <h3>Player 1</h3>
-            <div id="player1-cards"></div>
-        </div>
-        <div class="player-area" id="player2">
-            <h3>Player 2</h3>
-            <div id="player2-cards"></div>
-        </div>
-        <div id="community-cards">
-            <h3>Community Cards</h3>
-        </div>
+        <div id="player-cards" class="card-area"></div>
+        <div id="community-cards" class="card-area"></div>
+        <button id="toggleCards" class="hidden" onclick="toggleCards()">Show Player Cards</button>
         <p class="chips">Chips: <span id="chip-count">100</span></p>
-        <button id="toggleCards" class="hidden" onclick="toggleCards()">Switch Turn</button>
         <button onclick="placeBet(10)">Bet 10</button>
         <button onclick="placeBet(20)">Bet 20</button>
         <button onclick="fold()">Fold</button>
@@ -60,41 +54,62 @@
         // JAVASCRIPT START
         let currentMode = "";
         let playerTurn = 1;
-        let playerCards = {1: [], 2: []};
-        let communityCards = [];
         let deck = [];
-
+        let player1Hand = [];
+        let player2Hand = [];
+        let communityCards = [];
+        
         function startGame(mode) {
             currentMode = mode;
             document.getElementById("game-area").classList.remove("hidden");
-            document.getElementById("toggleCards").classList.toggle("hidden", mode !== 'pvp');
+            if (mode === 'pvp') {
+                document.getElementById("toggleCards").classList.remove("hidden");
+            } else {
+                document.getElementById("toggleCards").classList.add("hidden");
+            }
+            setupDeck();
             dealCards();
         }
-
+        
+        function setupDeck() {
+            const suits = ['Hearts', 'Diamonds', 'Clubs', 'Spades'];
+            const values = ['2', '3', '4', '5', '6', '7', '8', '9', '10', 'Jack', 'Queen', 'King', 'Ace'];
+            deck = [];
+            
+            for (let suit of suits) {
+                for (let value of values) {
+                    deck.push(`${value}${suit}.png`);
+                }
+            }
+            deck = shuffle(deck);
+        }
+        
         function dealCards() {
-            deck = shuffle(generateDeck());
-            playerCards[1] = [deck.pop(), deck.pop()];
-            playerCards[2] = [deck.pop(), deck.pop()];
-            communityCards = [deck.pop(), deck.pop(), deck.pop(), deck.pop(), deck.pop()];
-            renderCards();
+            player1Hand = deck.splice(0, 2);
+            player2Hand = deck.splice(0, 2);
+            communityCards = deck.splice(0, 5);
+            updateCards();
         }
-
-        function renderCards() {
-            document.getElementById("player1-cards").innerHTML =
-                `<img src="${playerCards[1][0]}" class="card"> <img src="${playerCards[1][1]}" class="card">`;
-            document.getElementById("player2-cards").innerHTML =
-                `<img src="${currentMode === 'pvp' ? playerCards[2][0] : 'RedPlaid.png'}" class="card"> 
-                 <img src="${currentMode === 'pvp' ? playerCards[2][1] : 'RedPlaid.png'}" class="card">`;
-            document.getElementById("community-cards").innerHTML =
-                `<h3>Community Cards</h3> ${communityCards.map(card => `<img src="${card}" class="card">`).join('')}`;
+        
+        function updateCards() {
+            document.getElementById("player-cards").innerHTML = `
+                <img src="${player1Hand[0]}" class="card" id="p1card1">
+                <img src="${player1Hand[1]}" class="card" id="p1card2">
+                <img src="RedPlaid.png" class="card hidden" id="p2card1">
+                <img src="RedPlaid.png" class="card hidden" id="p2card2">
+            `;
+            document.getElementById("community-cards").innerHTML = communityCards.map(card => `<img src="${card}" class="card">`).join('');
         }
-
+        
         function toggleCards() {
+            let p1Cards = document.querySelectorAll("#player-cards img:not(.hidden)");
+            let p2Cards = document.querySelectorAll("#player-cards img.hidden");
+            p1Cards.forEach(card => card.classList.add("hidden"));
+            p2Cards.forEach(card => card.classList.remove("hidden"));
             playerTurn = playerTurn === 1 ? 2 : 1;
             document.getElementById("player-turn").innerText = `Player ${playerTurn}'s Turn`;
-            renderCards();
         }
-
+        
         function placeBet(amount) {
             let chips = parseInt(document.getElementById("chip-count").innerText);
             if (chips >= amount) {
@@ -102,25 +117,25 @@
             } else {
                 alert("Not enough chips!");
             }
-        }
-
-        function fold() {
-            alert(`Player ${playerTurn} folds!`);
-            startGame(currentMode);
-        }
-
-        function generateDeck() {
-            const suits = ['Hearts', 'Diamonds', 'Clubs', 'Spades'];
-            const values = ['2', '3', '4', '5', '6', '7', '8', '9', '10', 'Jack', 'Queen', 'King', 'Ace'];
-            let deck = [];
-            for (let suit of suits) {
-                for (let value of values) {
-                    deck.push(`${value}${suit}.png`);
-                }
+            if (currentMode === 'bot' && playerTurn === 2) {
+                botMove();
             }
-            return deck;
         }
-
+        
+        function fold() {
+            alert(`Player ${playerTurn} folded!`);
+            resetGame();
+        }
+        
+        function resetGame() {
+            document.getElementById("game-area").classList.add("hidden");
+        }
+        
+        function botMove() {
+            let betAmount = Math.random() > 0.5 ? 10 : 20;
+            placeBet(betAmount);
+        }
+        
         function shuffle(array) {
             for (let i = array.length - 1; i > 0; i--) {
                 const j = Math.floor(Math.random() * (i + 1));
