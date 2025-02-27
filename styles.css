@@ -1,0 +1,25 @@
+body {
+    background-color: green;
+    text-align: center;
+    color: white;
+    font-family: Arial, sans-serif;
+}
+
+.hidden {
+    display: none;
+}
+
+.hand {
+    margin-top: 20px;
+}
+
+.card {
+    width: 100px;
+    height: 140px;
+    margin: 5px;
+}
+
+.chips {
+    font-size: 20px;
+    color: red;
+}
